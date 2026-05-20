@@ -65,21 +65,28 @@
     </footer>
 
     <script>
-        // 3. Configure the Sanity Client
+        // Configure the Sanity Client
         const client = window.SanityClient.createClient({
-            projectId: 'eswm8v8i', // Replace with your actual project ID
+            projectId: 'eswm8v8i',
             dataset: 'production',
             useCdn: true,
             apiVersion: '2026-05-20'
         });
 
-        // 4. Fetch the post data
+        // Initialize image URL builder
+        const builder = window.SanityImageUrl.default(client);
+        function urlFor(source) {
+            return builder.image(source);
+        }
+
+        // Fetch post data from Sanity
         async function fetchPosts() {
             const query = `*[_type == "post"] | order(publishedAt desc) {
                 title,
                 "slug": slug.current,
                 description,
-                publishedAt
+                publishedAt,
+                mainImage
             }`;
 
             try {
@@ -91,10 +98,10 @@
             }
         }
 
-        // 5. Inject posts into the DOM
+        // Inject posts into the DOM
         function renderPosts(posts) {
             const container = document.getElementById('blog-posts-container');
-            container.innerHTML = ''; // Clear loading text
+            container.innerHTML = '';
 
             if (posts.length === 0) {
                 container.innerHTML = '<p>No posts found.</p>';
@@ -106,48 +113,23 @@
                     year: 'numeric', month: 'long', day: 'numeric'
                 });
 
-                const article = document.createElement('article');
-                article.className = 'post-card';
-                article.innerHTML = `
-                    <h2>${post.title}</h2>
-                    <small class="post-date">${date}</small>
-                    <p>${post.description || ''}</p>
-                    <!-- Link points to post.html with the unique slug attached as a query param -->
-                    <a href="post.html?slug=${post.slug}" class="read-more">Read Article →</a>
-                `;
-                container.appendChild(article);
-            });
-            async function fetchPosts() {
-                const query = `*[_type == "post"] | order(publishedAt desc) {
-        title,
-        "slug": slug.current,
-        description,
-        publishedAt,
-        mainImage // Grab the image block item references
-    }`;
-
-                // ... your client fetch wrapper logic stays identical
-            }
-            posts.forEach(post => {
-                const article = document.createElement('article');
-                article.className = 'post-card';
-
-                // Generate fallback template markup if no image exists 
                 let imageHtml = '';
                 if (post.mainImage) {
-                    // Automatically crop/scale image to a crisp 400x250 web format via CDN
                     const imageUrl = urlFor(post.mainImage).width(400).height(250).url();
                     imageHtml = `<img src="${imageUrl}" alt="${post.title} thumbnail" class="blog-thumb">`;
                 }
 
+                const article = document.createElement('article');
+                article.className = 'post-card';
                 article.innerHTML = `
-        ${imageHtml}
-        <div class="post-card-content">
-            <h2>${post.title}</h2>
-            <p>${post.description || ''}</p>
-            <a href="post.html?slug=${post.slug}" class="read-more">Read Article →</a>
-        </div>
-    `;
+                    ${imageHtml}
+                    <div class="post-card-content">
+                        <h2>${post.title}</h2>
+                        <small class="post-date">${date}</small>
+                        <p>${post.description || ''}</p>
+                        <a href="post.html?slug=${post.slug}" class="read-more">Read Article →</a>
+                    </div>
+                `;
                 container.appendChild(article);
             });
         }

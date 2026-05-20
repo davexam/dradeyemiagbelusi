@@ -60,13 +60,19 @@
 
     <script>
         const client = window.SanityClient.createClient({
-            projectId: 'eswm8v8i', // Replace with your actual project ID
+            projectId: 'eswm8v8i',
             dataset: 'production',
             useCdn: true,
             apiVersion: '2026-05-20'
         });
 
-        // 1. Parse the '?slug=xxx' parameter out of the browser's address bar
+        // Initialize image URL builder
+        const builder = window.SanityImageUrl.default(client);
+        function urlFor(source) {
+            return builder.image(source);
+        }
+
+        // Parse the '?slug=xxx' parameter from the URL
         const urlParams = new URLSearchParams(window.location.search);
         const currentSlug = urlParams.get('slug');
 
@@ -76,9 +82,9 @@
                 return;
             }
 
-            // GROQ query finding the single item matching the slug
             const query = `*[_type == "post" && slug.current == $slug][0]{
                 title,
+                mainImage,
                 body
             }`;
 
@@ -90,11 +96,22 @@
                     return;
                 }
 
-                // 2. Update page title and header text
-                document.title = `${post.title} - My Blog`;
+                // Update page title and header
+                document.title = `${post.title} - Dr. Adeyemi Agbelusi`;
                 document.getElementById('post-title').innerText = post.title;
 
-                // 3. Convert Sanity Portable Text block data straight to native HTML strings
+                // Insert hero banner image if available
+                if (post.mainImage) {
+                    const heroUrl = urlFor(post.mainImage).width(1200).height(500).url();
+                    const imgTag = document.createElement('img');
+                    imgTag.src = heroUrl;
+                    imgTag.className = 'blog-hero-banner';
+                    imgTag.alt = post.title;
+                    const wrapper = document.getElementById('article-wrapper');
+                    wrapper.insertBefore(imgTag, document.getElementById('post-title'));
+                }
+
+                // Convert Portable Text to HTML
                 if (post.body) {
                     const htmlContent = window.toHtml.toHTML(post.body);
                     document.getElementById('post-body').innerHTML = htmlContent;
@@ -122,27 +139,6 @@
             const navCta = document.querySelector('.nav-cta');
             navLinks.style.display = navLinks.style.display === 'flex' ? 'none' : 'flex';
             navCta.style.display = navCta.style.display === 'block' ? 'none' : 'block';
-        }
-
-        const query = `*[_type == "post" && slug.current == $slug][0]{
-    title,
-    mainImage,
-    body
-}`;
-
-        const post = await client.fetch(query, { slug: currentSlug });
-
-        if (post.mainImage) {
-            const heroUrl = urlFor(post.mainImage).width(1200).height(500).url();
-
-            const imgTag = document.createElement('img');
-            imgTag.src = heroUrl;
-            imgTag.className = 'blog-hero-banner';
-            imgTag.alt = post.title;
-
-            // Insert image tag cleanly right before your title header text element
-            const wrapper = document.getElementById('article-wrapper');
-            wrapper.insertBefore(imgTag, document.getElementById('post-title'));
         }
     </script>
 </body>

@@ -15,11 +15,12 @@
         rel="stylesheet" />
     <link rel="stylesheet" href="assets/css/style.css" />
 
-    <!-- 1. Include Sanity Client & Portable Text libraries via CDN -->
+    //<!-- 1. Include Sanity Client & Portable Text libraries via CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@sanity/client@6.15.2/dist/index.umd.min.js"></script>
 
-    <!-- Include the Image URL Builder utility via CDN -->
+    //<!-- Include the Image URL Builder utility via CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@sanity/image-url@1.0.2/dist/index.umd.min.js"></script>
+
 </head>
 
 <body>
@@ -46,10 +47,16 @@
             <h1 class="section-title">Latest <em>Publications</em></h1>
         </header>
 
-        <!-- 2. Container where JavaScript will inject the posts -->
         <main id="blog-posts-container">
             <p class="loading">Loading articles...</p>
         </main>
+
+        <!-- 2. Container where JavaScript will inject the posts 
+        <main id="blog-posts-container">
+            <p class="loading">Loading articles...</p>
+        </main>
+
+-->
     </section>
 
     <footer>
@@ -64,14 +71,138 @@
         <p class="footer-copy">© 2026 Dr. Adeyemi Agbelusi. All Rights Reserved.</p>
     </footer>
 
-    <script>
-        // Configure the Sanity Client
-        const client = window.SanityClient.createClient({
-            projectId: 'eswm8v8i',
+
+
+    <!-- Use type="module" so we can use standard import syntax directly in the browser -->
+    <script type="module">
+        // 1. Direct browser ESM import (Works natively on Vercel)
+        import { createClient } from 'https://esm.sh/@sanity/client@6.15.2';
+
+        // 2. Initialize your client natively without 'window' wrappers
+        const client = createClient({
+            projectId: 'eswm8v8i', // Put your real 8-character project ID here
             dataset: 'production',
             useCdn: true,
             apiVersion: '2026-05-20'
         });
+
+        // 3. The fetch logic handles perfectly
+        async function fetchPosts() {
+            const query = `*[_type == "post"] | order(publishedAt desc) {
+            title,
+            "slug": slug.current,
+            description,
+            publishedAt
+        }`;
+
+            try {
+                const posts = await client.fetch(query);
+                renderPosts(posts);
+            } catch (error) {
+                console.error("Error fetching Sanity posts:", error);
+                document.getElementById('blog-posts-container').innerHTML = '<p>Failed to load posts.</p>';
+            }
+        }
+
+        function renderPosts(posts) {
+            const container = document.getElementById('blog-posts-container');
+            container.innerHTML = '';
+
+            if (posts.length === 0) {
+                container.innerHTML = '<p>No posts found.</p>';
+                return;
+            }
+
+            posts.forEach(post => {
+                const date = new Date(post.publishedAt).toLocaleDateString('en-US', {
+                    year: 'numeric', month: 'long', day: 'numeric'
+                });
+
+                const article = document.createElement('article');
+                article.className = 'post-card';
+                article.innerHTML = `
+                <h2>${post.title}</h2>
+                <small class="post-date">${date}</small>
+                <p>${post.description || ''}</p>
+                <a href="post.html?slug=${post.slug}" class="read-more">Read Article →</a>
+            `;
+                container.appendChild(article);
+            });
+        }
+
+        // Execute immediately on script parse
+        fetchPosts();
+    </script>
+
+    <!--Old script 
+    <script>
+        // 2. Wait until the browser has fully downloaded and loaded the script above
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // Double check that window.SanityClient exists before calling it
+            if (!window.SanityClient) {
+                console.error("Sanity client failed to load from CDN.");
+                document.getElementById('blog-posts-container').innerHTML = '<p>Connection error. Please try again later.</p>';
+                return;
+            }
+
+            // 3. Initialize your client inside the event listener
+            const client = window.SanityClient.createClient({
+                projectId: 'eswm8v8i', // Replace with your real project ID
+                dataset: 'production',
+                useCdn: true,
+                apiVersion: '2026-05-20'
+            });
+
+            // 4. Move your fetch function inside here so it has access to 'client'
+            async function fetchPosts() {
+                const query = `*[_type == "post"] | order(publishedAt desc) {
+                title,
+                "slug": slug.current,
+                description,
+                publishedAt
+            }`;
+
+                try {
+                    const posts = await client.fetch(query);
+                    renderPosts(posts);
+                } catch (error) {
+                    console.error("Error fetching Sanity posts:", error);
+                    document.getElementById('blog-posts-container').innerHTML = '<p>Failed to load posts.</p>';
+                }
+            }
+
+            function renderPosts(posts) {
+                const container = document.getElementById('blog-posts-container');
+                container.innerHTML = '';
+
+                if (posts.length === 0) {
+                    container.innerHTML = '<p>No posts found.</p>';
+                    return;
+                }
+
+                posts.forEach(post => {
+                    const date = new Date(post.publishedAt).toLocaleDateString('en-US', {
+                        year: 'numeric', month: 'long', day: 'numeric'
+                    });
+
+                    const article = document.createElement('article');
+                    article.className = 'post-card';
+                    article.innerHTML = `
+                    <h2>${post.title}</h2>
+                    <small class="post-date">${date}</small>
+                    <p>${post.description || ''}</p>
+                    <a href="post.html?slug=${post.slug}" class="read-more">Read Article →</a>
+                `;
+                    container.appendChild(article);
+                });
+            }
+
+            // 5. Kick off the fetch execution safely
+            fetchPosts();
+        });
+
+
 
         // Initialize image URL builder
         const builder = window.SanityImageUrl.default(client);
@@ -82,12 +213,12 @@
         // Fetch post data from Sanity
         async function fetchPosts() {
             const query = `*[_type == "post"] | order(publishedAt desc) {
-                title,
-                "slug": slug.current,
-                description,
-                publishedAt,
-                mainImage
-            }`;
+    title,
+    "slug": slug.current,
+    description,
+    publishedAt,
+    mainImage
+    }`;
 
             try {
                 const posts = await client.fetch(query);
@@ -122,14 +253,14 @@
                 const article = document.createElement('article');
                 article.className = 'post-card';
                 article.innerHTML = `
-                    ${imageHtml}
-                    <div class="post-card-content">
-                        <h2>${post.title}</h2>
-                        <small class="post-date">${date}</small>
-                        <p>${post.description || ''}</p>
-                        <a href="post.html?slug=${post.slug}" class="read-more">Read Article →</a>
-                    </div>
-                `;
+    ${imageHtml}
+    <div class="post-card-content">
+        <h2>${post.title}</h2>
+        <small class="post-date">${date}</small>
+        <p>${post.description || ''}</p>
+        <a href="post.html?slug=${post.slug}" class="read-more">Read Article →</a>
+    </div>
+    `;
                 container.appendChild(article);
             });
         }
@@ -154,6 +285,9 @@
             navCta.style.display = navCta.style.display === 'block' ? 'none' : 'block';
         }
     </script>
+    -->
+
+
 </body>
 
 </html>

@@ -12,9 +12,7 @@
         rel="stylesheet" />
     <link rel="stylesheet" href="assets/css/style.css" />
 
-    <!-- Include Sanity Client & PortableText HTML transformer -->
-    <script src="https://cdn.jsdelivr.net/npm/@sanity/client@6.15.2/dist/index.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@portabletext/to-html@2.0.13/dist/index.umd.min.js"></script>
+    <!-- removed Sanity Client & PortableText HTML transformer -->
 
     <!-- Include the Image URL Builder utility via CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@sanity/image-url@1.0.2/dist/index.umd.min.js"></script>
@@ -58,6 +56,69 @@
         <p class="footer-copy">© 2026 Dr. Adeyemi Agbelusi. All Rights Reserved.</p>
     </footer>
 
+
+
+    <!-- Use type="module" so we can import packages cleanly via ESM -->
+    <script type="module">
+        // 1. Direct browser ESM imports for both Sanity and the Portable Text transformer
+        import { createClient } from 'https://esm.sh/@sanity/client@6.15.2';
+        import { toHTML } from 'https://esm.sh/@portabletext/to-html@2.0.13';
+
+        // 2. Initialize your client
+        const client = createClient({
+            projectId: 'eswm8v8i', // Replace with your actual project ID
+            dataset: 'production',
+            useCdn: true,
+            apiVersion: '2026-05-20'
+        });
+
+        // 3. Parse the query param out of the address bar
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentSlug = urlParams.get('slug');
+
+        async function fetchSinglePost() {
+            if (!currentSlug) {
+                document.getElementById('post-title').innerText = "Post Not Found";
+                return;
+            }
+
+            const query = `*[_type == "post" && slug.current == $slug][0]{
+            title,
+            body
+        }`;
+
+            try {
+                const post = await client.fetch(query, { slug: currentSlug });
+
+                if (!post) {
+                    document.getElementById('post-title').innerText = "Post Not Found";
+                    return;
+                }
+
+                // 4. Update page details
+                document.title = `${post.title} - My Blog`;
+                document.getElementById('post-title').innerText = post.title;
+
+                // 5. Use the imported toHTML function directly
+                if (post.body) {
+                    const htmlContent = toHTML(post.body);
+                    document.getElementById('post-body').innerHTML = htmlContent;
+                } else {
+                    document.getElementById('post-body').innerHTML = '<p>This post has no content.</p>';
+                }
+
+            } catch (error) {
+                console.error("Error loading article:", error);
+                document.getElementById('post-title').innerText = "Error loading article";
+            }
+        }
+
+        // Execute the fetch routine
+        fetchSinglePost();
+    </script>
+
+
+    <!-- Old Script 
     <script>
         const client = window.SanityClient.createClient({
             projectId: 'eswm8v8i',
@@ -141,6 +202,9 @@
             navCta.style.display = navCta.style.display === 'block' ? 'none' : 'block';
         }
     </script>
+
+-->
+
 </body>
 
 </html>
